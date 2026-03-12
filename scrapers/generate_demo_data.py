@@ -8,7 +8,7 @@ import random
 from datetime import datetime, timedelta
 import uuid
 
-# Bulgarian neighborhoods by city
+# Bulgarian neighborhoods by city (Sofia and Burgas only)
 NEIGHBORHOODS = {
     "sofia": [
         "Лозенец", "Борово", "Витоша", "Младост 1", "Младост 2", "Младост 3", "Младост 4",
@@ -22,20 +22,14 @@ NEIGHBORHOODS = {
     ],
     "burgas": [
         "Център", "Възраждане", "Лазур", "Славейков", "Зорница", "Изгрев",
-        "Меден рудник", "Братя Миладинови", "Сарафово", "Крайморие"
+        "Меден рудник", "Братя Миладинови", "Сарафово", "Крайморие",
+        "Св. Влас", "Слънчев бряг", "Несебър", "Равда", "Поморие", "Созопол",
+        "Черноморец", "Приморско", "Царево", "Ахелой"
     ],
-    "varna": [
-        "Център", "Чайка", "Левски", "Трошево", "Владиславово", "Виница",
-        "Младост", "Възраждане", "Аспарухово", "Галата", "Бриз"
-    ],
-    "plovdiv": [
-        "Център", "Кючук Париж", "Тракия", "Южен", "Смирненски", "Марица",
-        "Захарна фабрика", "Въстанически", "Филипово", "Коматево"
-    ]
 }
 
-# Property types
-PROPERTY_TYPES = ["apartment_1", "apartment_2", "apartment_3", "apartment_4", "studio", "house"]
+# Property types (including land and commercial)
+PROPERTY_TYPES = ["apartment_1", "apartment_2", "apartment_3", "apartment_4", "studio", "house", "land", "commercial"]
 
 # Sources with realistic weights
 SOURCES = [
@@ -56,6 +50,8 @@ PRICE_RANGES = {
     "apartment_3": (90000, 280000),
     "apartment_4": (130000, 450000),
     "house": (150000, 800000),
+    "land": (20000, 500000),
+    "commercial": (80000, 1200000),
 }
 
 # Area ranges by property type (m²)
@@ -66,6 +62,8 @@ AREA_RANGES = {
     "apartment_3": (80, 130),
     "apartment_4": (110, 200),
     "house": (150, 400),
+    "land": (300, 5000),
+    "commercial": (50, 500),
 }
 
 # Placeholder images (using picsum for demo)
@@ -103,10 +101,10 @@ def generate_price_history(current_price, months=6):
 
 def generate_listing(city):
     """Generate a single realistic listing."""
-    # Choose property type
+    # Choose property type (including land and commercial)
     property_type = random.choices(
         PROPERTY_TYPES,
-        weights=[0.10, 0.35, 0.30, 0.12, 0.08, 0.05]
+        weights=[0.08, 0.28, 0.25, 0.10, 0.06, 0.08, 0.08, 0.07]  # apartment_1, apartment_2, apartment_3, apartment_4, studio, house, land, commercial
     )[0]
 
     # Choose neighborhood
@@ -115,8 +113,8 @@ def generate_listing(city):
     # Generate price based on city and type
     base_min, base_max = PRICE_RANGES[property_type]
 
-    # City price multipliers
-    city_multipliers = {"sofia": 1.4, "varna": 1.0, "burgas": 0.9, "plovdiv": 0.85}
+    # City price multipliers (Sofia and Burgas only)
+    city_multipliers = {"sofia": 1.4, "burgas": 1.0}
     multiplier = city_multipliers.get(city, 1.0)
 
     # Neighborhood premium (center = +20%, others vary)
@@ -134,9 +132,13 @@ def generate_listing(city):
     # Calculate price per sqm
     price_per_sqm = round(price_eur / area_sqm)
 
-    # Generate floor
-    total_floors = random.randint(3, 12)
-    floor = random.randint(1, total_floors)
+    # Generate floor (not applicable for land and house)
+    if property_type in ["land", "house"]:
+        floor = None
+        total_floors = None
+    else:
+        total_floors = random.randint(3, 12)
+        floor = random.randint(1, total_floors)
 
     # Choose source
     source = random.choices(
@@ -161,17 +163,34 @@ def generate_listing(city):
         "apartment_3": "Тристаен апартамент",
         "apartment_4": "Четиристаен апартамент",
         "house": "Къща",
+        "land": "Парцел",
+        "commercial": "Търговски обект",
     }
 
     title = f"{type_labels[property_type]}, {area_sqm} m², {neighborhood}"
 
-    # Generate description
-    descriptions = [
-        f"Продава се {type_labels[property_type].lower()} в квартал {neighborhood}. Жилището се намира на {floor} етаж от {total_floors}-етажна сграда.",
-        f"Светъл и просторен {type_labels[property_type].lower()} с изглед към града. Отлична локация в {neighborhood}.",
-        f"Напълно обзаведен {type_labels[property_type].lower()} в {neighborhood}. Идеален за живеене или инвестиция.",
-        f"Слънчев апартамент в престижния квартал {neighborhood}. Ниски такси за поддръжка.",
-    ]
+    # Generate description based on property type
+    if property_type == "land":
+        descriptions = [
+            f"Продава се парцел в {neighborhood}. Отличен за строителство на жилищна или търговска сграда.",
+            f"Равен парцел с лице към главен път в {neighborhood}. Подходящ за инвестиция.",
+            f"УПИ в регулация в {neighborhood}. Всички комуникации са налични.",
+            f"Атрактивен парцел в {neighborhood}. Панорамна гледка.",
+        ]
+    elif property_type == "commercial":
+        descriptions = [
+            f"Търговски обект в {neighborhood}. Подходящ за магазин, офис или заведение.",
+            f"Просторен търговски обект на оживена улица в {neighborhood}. Голяма витрина.",
+            f"Офис площ в бизнес сграда в {neighborhood}. Паркомясто включено.",
+            f"Магазин с депо в {neighborhood}. Отлична локация с голям пешеходен поток.",
+        ]
+    else:
+        descriptions = [
+            f"Продава се {type_labels[property_type].lower()} в квартал {neighborhood}. Жилището се намира на {floor} етаж от {total_floors}-етажна сграда.",
+            f"Светъл и просторен {type_labels[property_type].lower()} с изглед към града. Отлична локация в {neighborhood}.",
+            f"Напълно обзаведен {type_labels[property_type].lower()} в {neighborhood}. Идеален за живеене или инвестиция.",
+            f"Слънчев имот в престижния квартал {neighborhood}. Ниски такси за поддръжка.",
+        ]
 
     # Is it new listing?
     created_at = datetime.now() - timedelta(hours=random.randint(1, 720))
@@ -210,8 +229,8 @@ def generate_dataset(total_listings=200):
     """Generate a complete dataset of listings."""
     listings = []
 
-    # Distribution by city
-    city_weights = {"sofia": 0.55, "varna": 0.18, "burgas": 0.15, "plovdiv": 0.12}
+    # Distribution by city (Sofia and Burgas only)
+    city_weights = {"sofia": 0.65, "burgas": 0.35}
 
     for _ in range(total_listings):
         city = random.choices(

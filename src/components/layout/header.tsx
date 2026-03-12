@@ -14,8 +14,6 @@ interface HeaderProps {
 const cities = [
   { id: 'sofia', label: 'Sofia' },
   { id: 'burgas', label: 'Burgas' },
-  { id: 'varna', label: 'Varna' },
-  { id: 'plovdiv', label: 'Plovdiv' },
 ];
 
 const mockNotifications = [

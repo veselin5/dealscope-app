@@ -68,8 +68,6 @@ export default function MapPage() {
               options={[
                 { value: 'sofia', label: 'Sofia' },
                 { value: 'burgas', label: 'Burgas' },
-                { value: 'varna', label: 'Varna' },
-                { value: 'plovdiv', label: 'Plovdiv' },
               ]}
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}

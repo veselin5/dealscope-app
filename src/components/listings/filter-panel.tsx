@@ -22,7 +22,8 @@ const propertyTypes = [
   { value: 'apartment_4', label: '4+ Bedroom' },
   { value: 'studio', label: 'Studio' },
   { value: 'house', label: 'House' },
-  { value: 'villa', label: 'Villa' },
+  { value: 'land', label: 'Land' },
+  { value: 'commercial', label: 'Commercial' },
 ];
 
 const sources = [
