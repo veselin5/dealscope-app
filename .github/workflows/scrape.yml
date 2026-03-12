@@ -1,0 +1,125 @@
+name: Scrape Real Estate Listings
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      city:
+        description: 'City to scrape'
+        required: false
+        default: 'sofia'
+        type: choice
+        options:
+          - sofia
+          - burgas
+          - varna
+          - plovdiv
+          - all
+      sources:
+        description: 'Sources to scrape (comma-separated or "all")'
+        required: false
+        default: 'all'
+      pages:
+        description: 'Max pages per source'
+        required: false
+        default: '3'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: scrapers/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd scrapers
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Determine scraping parameters
+        id: params
+        run: |
+          CITY="${{ github.event.inputs.city || 'sofia' }}"
+          SOURCES="${{ github.event.inputs.sources || 'all' }}"
+          PAGES="${{ github.event.inputs.pages || '3' }}"
+
+          echo "city=$CITY" >> $GITHUB_OUTPUT
+          echo "sources=$SOURCES" >> $GITHUB_OUTPUT
+          echo "pages=$PAGES" >> $GITHUB_OUTPUT
+
+      - name: Run scrapers
+        run: |
+          cd scrapers
+
+          CITY="${{ steps.params.outputs.city }}"
+          SOURCES="${{ steps.params.outputs.sources }}"
+          PAGES="${{ steps.params.outputs.pages }}"
+
+          if [ "$CITY" == "all" ]; then
+            CITIES="sofia burgas varna plovdiv"
+          else
+            CITIES="$CITY"
+          fi
+
+          for city in $CITIES; do
+            echo "Scraping $city..."
+
+            if [ "$SOURCES" == "all" ]; then
+              python run_scraper.py --all --city "$city" --pages "$PAGES" --output "results_${city}.json"
+            else
+              IFS=',' read -ra SOURCE_ARRAY <<< "$SOURCES"
+              for source in "${SOURCE_ARRAY[@]}"; do
+                python run_scraper.py --source "$source" --city "$city" --pages "$PAGES" --output "results_${city}_${source}.json"
+              done
+            fi
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-results-${{ github.run_id }}
+          path: scrapers/results_*.json
+          retention-days: 7
+
+      - name: Summary
+        run: |
+          echo "## Scrape Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for file in scrapers/results_*.json; do
+            if [ -f "$file" ]; then
+              FILENAME=$(basename "$file")
+              LISTINGS=$(jq '.totals.listings // 0' "$file")
+              echo "- **$FILENAME**: $LISTINGS listings" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  notify:
+    needs: scrape
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Notify on failure
+        run: |
+          echo "Scraping job failed!"
+          # Add notification logic here (Slack, email, etc.)
