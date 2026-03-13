@@ -40,7 +40,10 @@ export const mockPriceAlerts: PriceAlert[] = mockListings
   });
 
 // Scraper run status
-const sources = ['imot_bg', 'homes_bg', 'olx_bg', 'alo_bg', 'address_bg', 'bazar_bg', 'buildingbox_bg'];
+const sources = ['imot_bg', 'homes_bg', 'olx_bg', 'alo_bg', 'address_bg', 'bazar_bg', 'buildingbox_bg'] as const;
+type SourceType = typeof sources[number];
+
+const sourceCounts = demoData.stats.sources as Record<SourceType, number>;
 
 export const mockScraperRuns: ScraperRun[] = sources.map((source, i) => ({
   id: `run-${i + 1}`,
@@ -48,9 +51,9 @@ export const mockScraperRuns: ScraperRun[] = sources.map((source, i) => ({
   started_at: new Date(Date.now() - (i + 1) * 3600000).toISOString(),
   completed_at: new Date(Date.now() - i * 1800000).toISOString(),
   status: 'completed' as const,
-  listings_found: demoData.stats.sources[source] || 0,
-  new_listings: Math.floor((demoData.stats.sources[source] || 0) * 0.1),
-  updated_listings: Math.floor((demoData.stats.sources[source] || 0) * 0.3),
+  listings_found: sourceCounts[source] || 0,
+  new_listings: Math.floor((sourceCounts[source] || 0) * 0.1),
+  updated_listings: Math.floor((sourceCounts[source] || 0) * 0.3),
 }));
 
 // Generate neighborhood statistics
