@@ -130,6 +130,52 @@ def scrape_imot_bg(page: Page, city: str, max_listings: int = 2000, max_pages_pe
                         id_match = re.search(r'obiava-([a-zA-Z0-9]+)', listing_url)
                         listing_id = id_match.group(1) if id_match else str(hash(listing_url) % 10000000)
 
+                        # Extract photos using Playwright selectors
+                        photos = []
+                        seen_photos = set()
+
+                        # Try to find gallery/slider images first
+                        img_elements = page.query_selector_all('img')
+                        for img_el in img_elements:
+                            if len(photos) >= 5:
+                                break
+                            try:
+                                # Check both src and data-src attributes
+                                img_src = img_el.get_attribute('src') or img_el.get_attribute('data-src')
+                                if not img_src:
+                                    continue
+
+                                # Skip small icons, logos, and UI elements
+                                img_class = img_el.get_attribute('class') or ''
+                                if any(skip in img_class.lower() for skip in ['logo', 'icon', 'avatar', 'btn']):
+                                    continue
+
+                                # Look for property images (usually have dimensions or are in specific paths)
+                                if any(ext in img_src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                                    # Skip very small thumbnails and UI images
+                                    if 'logo' in img_src.lower() or 'icon' in img_src.lower() or 'banner' in img_src.lower():
+                                        continue
+                                    if 'picload' in img_src or 'pictures' in img_src or 'photos' in img_src or '/pic/' in img_src:
+                                        full_img = img_src if img_src.startswith('http') else f"https:{img_src}" if img_src.startswith('//') else f"https://www.imot.bg{img_src}"
+                                        if full_img not in seen_photos:
+                                            seen_photos.add(full_img)
+                                            photos.append(full_img)
+                            except:
+                                continue
+
+                        # Fallback: look for background images in style attributes
+                        if not photos:
+                            bg_matches = re.findall(r'background(?:-image)?:\s*url\(["\']?([^"\')\s]+)["\']?\)', detail_content)
+                            for bg in bg_matches:
+                                if len(photos) >= 5:
+                                    break
+                                if any(ext in bg.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                                    if 'logo' not in bg.lower() and 'icon' not in bg.lower():
+                                        full_img = bg if bg.startswith('http') else f"https:{bg}" if bg.startswith('//') else f"https://www.imot.bg{bg}"
+                                        if full_img not in seen_photos:
+                                            photos.append(full_img)
+                                            seen_photos.add(full_img)
+
                         listing = {
                             "id": f"listing-{listing_id[:12]}",
                             "source": "imot_bg",
@@ -141,6 +187,7 @@ def scrape_imot_bg(page: Page, city: str, max_listings: int = 2000, max_pages_pe
                             "price_eur": price_eur,
                             "area_sqm": area_sqm,
                             "neighborhood": neighborhood,
+                            "photos": photos if photos else None,
                             "scraped_at": datetime.now().isoformat()
                         }
                         listings.append(listing)
@@ -246,6 +293,19 @@ def scrape_olx_bg(page: Page, city: str, max_listings: int = 500, max_pages: int
                         id_match = re.search(r'ID([a-zA-Z0-9]+)', href)
                         listing_id = id_match.group(1) if id_match else str(hash(href) % 10000000)
 
+                        # Extract thumbnail image from the card
+                        photos = []
+                        img_el = card.query_selector('img')
+                        if img_el:
+                            # Try data-src first (usually has larger image), then src
+                            img_src = img_el.get_attribute('data-src') or img_el.get_attribute('src')
+                            if img_src and 'olx' in img_src and 'placeholder' not in img_src.lower():
+                                # Try to get larger image by modifying size params
+                                # Replace small size with larger size
+                                if ';s=' in img_src:
+                                    img_src = re.sub(r';s=\d+x\d+', ';s=644x461', img_src)
+                                photos.append(img_src)
+
                         listing = {
                             "id": f"listing-olx{listing_id[:8]}",
                             "source": "olx_bg",
@@ -255,6 +315,7 @@ def scrape_olx_bg(page: Page, city: str, max_listings: int = 500, max_pages: int
                             "property_type": prop_type,
                             "title": title or f"Property in {city}",
                             "price_eur": price_eur,
+                            "photos": photos if photos else None,
                             "scraped_at": datetime.now().isoformat()
                         }
                         listings.append(listing)
@@ -297,7 +358,10 @@ def add_metadata(listings: List[Dict]) -> List[Dict]:
 
         listing['is_new'] = random.random() < 0.15
         listing['is_agency'] = random.random() < 0.6
-        listing['photos'] = [f"https://picsum.photos/seed/{hash(listing['source_url']) % 1000}/800/600"]
+
+        # Only add placeholder if no real photos were scraped
+        if not listing.get('photos'):
+            listing['photos'] = [f"https://via.placeholder.com/800x600/6366F1/FFFFFF?text=No+Photo"]
 
     return listings
 
