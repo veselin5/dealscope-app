@@ -104,20 +104,20 @@ SOURCE_URLS = {
         }
     },
     "alo_bg": {
-        "sofia": "https://www.alo.bg/obiavi/imoti/prodazhbi/?location_id=1",
-        "burgas": "https://www.alo.bg/obiavi/imoti/prodazhbi/?location_id=2",
+        "sofia": "https://www.alo.bg/",
+        "burgas": "https://www.alo.bg/",
     },
     "address_bg": {
-        "sofia": "https://address.bg/bg/prodazhbi/sofiya-grad",
-        "burgas": "https://address.bg/bg/prodazhbi/burgas-grad",
+        "sofia": "https://address.bg/",
+        "burgas": "https://address.bg/",
     },
     "bazar_bg": {
-        "sofia": "https://bazar.bg/obiavi/imoti/prodava/sofiya",
-        "burgas": "https://bazar.bg/obiavi/imoti/prodava/burgas",
+        "sofia": "https://bazar.bg/",
+        "burgas": "https://bazar.bg/",
     },
     "buildingbox_bg": {
-        "sofia": "https://buildingbox.bg/sofia",
-        "burgas": "https://buildingbox.bg/burgas",
+        "sofia": "https://buildingbox.bg/",
+        "burgas": "https://buildingbox.bg/",
     }
 }
 
