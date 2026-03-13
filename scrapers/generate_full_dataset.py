@@ -50,7 +50,7 @@ NEIGHBORHOODS = {
     ]
 }
 
-# Sources with realistic distribution
+# Sources with realistic distribution and real search URLs
 SOURCES = [
     ("imot_bg", 0.35, "https://www.imot.bg"),
     ("homes_bg", 0.18, "https://www.homes.bg"),
@@ -60,6 +60,66 @@ SOURCES = [
     ("bazar_bg", 0.05, "https://bazar.bg"),
     ("buildingbox_bg", 0.05, "https://buildingbox.bg"),
 ]
+
+# Real search URL patterns for each source
+SOURCE_URLS = {
+    "imot_bg": {
+        "sofia": {
+            "apartment_1": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/ednostaen",
+            "apartment_2": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/dvustaen",
+            "apartment_3": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/tristaen",
+            "apartment_4": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/mnogostaen",
+            "studio": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/ednostaen",
+            "house": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/kashta",
+            "land": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/parcel",
+            "commercial": "https://www.imot.bg/obiavi/prodazhbi/grad-sofiya/magazin",
+        },
+        "burgas": {
+            "apartment_1": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/ednostaen",
+            "apartment_2": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/dvustaen",
+            "apartment_3": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/tristaen",
+            "apartment_4": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/mnogostaen",
+            "studio": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/ednostaen",
+            "house": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/kashta",
+            "land": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/parcel",
+            "commercial": "https://www.imot.bg/obiavi/prodazhbi/grad-burgas/magazin",
+        }
+    },
+    "homes_bg": {
+        "sofia": "https://www.homes.bg/prodazhbi/sofiya/",
+        "burgas": "https://www.homes.bg/prodazhbi/burgas/",
+    },
+    "olx_bg": {
+        "sofia": {
+            "apartment": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/apartamenti/oblast-sofiya-grad/",
+            "house": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/kashti/oblast-sofiya-grad/",
+            "land": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/zemya/oblast-sofiya-grad/",
+            "commercial": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/magazini-ofisi-zali/oblast-sofiya-grad/",
+        },
+        "burgas": {
+            "apartment": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/apartamenti/oblast-burgas/",
+            "house": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/kashti/oblast-burgas/",
+            "land": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/zemya/oblast-burgas/",
+            "commercial": "https://www.olx.bg/d/nedvizhimi-imoti/prodazhbi/magazini-ofisi-zali/oblast-burgas/",
+        }
+    },
+    "alo_bg": {
+        "sofia": "https://www.alo.bg/obiavi/imoti/prodazhbi/?location_id=1",
+        "burgas": "https://www.alo.bg/obiavi/imoti/prodazhbi/?location_id=2",
+    },
+    "address_bg": {
+        "sofia": "https://address.bg/bg/prodazhbi/sofiya-grad",
+        "burgas": "https://address.bg/bg/prodazhbi/burgas-grad",
+    },
+    "bazar_bg": {
+        "sofia": "https://bazar.bg/obiavi/imoti/prodava/sofiya",
+        "burgas": "https://bazar.bg/obiavi/imoti/prodava/burgas",
+    },
+    "buildingbox_bg": {
+        "sofia": "https://buildingbox.bg/sofia",
+        "burgas": "https://buildingbox.bg/burgas",
+    }
+}
 
 # Property types with distribution
 PROPERTY_TYPES = [
@@ -120,6 +180,36 @@ PREMIUM_NEIGHBORHOODS = {
     "Св. Влас": 1.25, "Слънчев бряг": 1.15, "Несебър - стар град": 1.30,
     "Созопол - стар град": 1.35, "Сарафово": 1.20, "Поморие - център": 1.10,
 }
+
+
+def get_real_source_url(source: str, city: str, prop_type: str) -> str:
+    """Get real search URL for source, city, and property type."""
+    source_data = SOURCE_URLS.get(source, {})
+
+    if source == "imot_bg":
+        city_data = source_data.get(city, {})
+        return city_data.get(prop_type, f"https://www.imot.bg/obiavi/prodazhbi/grad-{city}")
+
+    elif source == "olx_bg":
+        city_data = source_data.get(city, {})
+        if prop_type.startswith("apartment") or prop_type == "studio":
+            return city_data.get("apartment", f"https://www.olx.bg/d/nedvizhimi-imoti/")
+        return city_data.get(prop_type, f"https://www.olx.bg/d/nedvizhimi-imoti/")
+
+    else:
+        # Other sources have simple city-based URLs
+        city_url = source_data.get(city)
+        if city_url:
+            return city_url
+        # Fallback
+        base_urls = {
+            "homes_bg": "https://www.homes.bg",
+            "alo_bg": "https://www.alo.bg",
+            "address_bg": "https://address.bg",
+            "bazar_bg": "https://bazar.bg",
+            "buildingbox_bg": "https://buildingbox.bg",
+        }
+        return base_urls.get(source, "https://www.imot.bg")
 
 
 def generate_listing_id():
@@ -298,8 +388,8 @@ def generate_listing(city: str, source_override: str = None) -> dict:
     listing_id = generate_listing_id()
     source_id = generate_source_id(source)
 
-    # Source URL
-    source_url = f"{base_url}/listing/{source_id}"
+    # Source URL - use real search page URLs
+    source_url = get_real_source_url(source, city, prop_type)
 
     # Title
     title = f"{prop_label}, {area_sqm:.0f} m², {neighborhood}"
